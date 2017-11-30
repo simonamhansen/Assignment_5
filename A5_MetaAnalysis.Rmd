@@ -1,0 +1,190 @@
+---
+title: "Assignment 5 - Meta-analysis of pitch in schizophrenia"
+author: "Riccardo Fusaroli"
+date: "3/7/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Building on the shoulders of giants: meta-analysis
+
+## Questions to be answered
+
+1. What is the current evidence for distinctive patterns of pitch mean and pitch sd in schizophrenia? Report how many papers report quantitative estimates, your method to analyze them, the estimated effect size of the difference (mean effect size and standard error for pitch mean, same for pitch sd) and forest plots representing it. 
+
+```{r}
+# To set working directory
+setwd("~/Assignment_5")
+
+# To load relevant packages
+library(pacman); library(metafor); library(lmerTest)
+
+# To load in data
+meta_data=read.csv("Data.csv", sep = ";")
+
+# To calculate effect size
+Effectsize=escalc('SMD', n1i=SampleSizeSchizo, n2i=SampleSizeContros, m1i=PitchMeanSchizo, m2i=PitchMeanControls, sd1i=PitchMeanSchizoSD, sd2i=PitchMeanControlsSD, data = meta_data)
+
+m1 = lmer(yi ~ 1 + (1|Article), weights = 1/vi, data=Effectsize, control=lmerControl(check.nobs.vs.nlev="ignore", check.nobs.vs.nRE="ignore"))
+summary(m1)
+
+m2 = rma(yi, vi, data = Effectsize, slab = Article)
+forest(m2)
+
+# To calculate sample size
+Effectsize2 = subset(Effectsize[Effectsize$vi > 0,])
+sum(Effectsize2$SampleSizeSchizo, na.rm = TRUE) #166
+sum(Effectsize2$SampleSizeContros, na.rm = TRUE) #95
+
+# To calculate standard error of the effect sizes
+SE=escalc('SMD', n1i=SampleSizeSchizo, n2i=SampleSizeContros, m1i=PitchSDSchizo, m2i=PitchSDControls, sd1i=PitchSDSchizoSD, sd2i=PitchSDControlsSD, data = meta_data)
+
+m3 = lmer(yi ~ 1 + (1|Article), weights = 1/vi, data=SE, control=lmerControl(check.nobs.vs.nlev="ignore", check.nobs.vs.nRE="ignore"))
+summary(m3)
+
+m4 = rma(yi, vi, data = SE, slab = Article)
+forest(m4)
+
+# To calculate samplesize 
+SE2 = subset(SE[SE$vi > 0,])
+sum(SE2$SampleSizeSchizo, na.rm = TRUE) # 257
+sum(SE2$SampleSizeContros, na.rm = TRUE) # 156
+
+# yi = Cohen's D, vi = Variance of Cohen's D
+
+```
+
+Mean: 
+4 studies
+Schizophrenia = 166, Controls = 95
+Overall estimated diffrence (Cohen's D) was 0.18, SE = 0.17
+
+SE:
+6 studies
+Schizophrenia = 257, Controls = 156
+Overall estimated diffrence (Cohen's D) was -0.13, SE = 0.58
+
+
+2. Do the results match your own analysis from Assignment 3? If you add your results to the meta-analysis, do the estimated effect sizes change? Report the new estimates and the new forest plots.
+
+```{r}
+# To load own data 
+own_data = read.csv("Schizophrenia_data.csv")
+
+# To calculate values for own data
+PitchMeanSchizo = mean(own_data$mean[own_data$Diagnosis == "Schizophrenia"])
+PitchMeanControls = mean(own_data$mean[own_data$Diagnosis == "Control"])
+PitchMeanSchizoSD = sd(own_data$mean[own_data$Diagnosis == "Schizophrenia"])
+PitchMeanControlsSD = sd(own_data$mean[own_data$Diagnosis == "Control"])
+PitchSDSchizo = mean(own_data$SD[own_data$Diagnosis == "Schizophrenia"])
+PitchSDControls = mean(own_data$SD[own_data$Diagnosis == "Control"])
+PitchSDSchizoSD = mean(own_data$SD[own_data$Diagnosis == "Schizophrenia"])
+PitchSDControlsSD = mean(own_data$SD[own_data$Diagnosis == "Control"])
+SampleSizeSchizo = length(unique(own_data$Subject[own_data$Diagnosis == "Schizophrenia"]))
+SampleSizeContros = length(unique(own_data$Subject[own_data$Diagnosis == "Control"]))
+SampleSizeSchizo=as.numeric(SampleSizeSchizo)
+SampleSizeContros=as.numeric(SampleSizeContros)
+Article = "Own analysis"
+Year = 2017
+
+own_res = data.frame(Article, Year, SampleSizeSchizo, SampleSizeContros, PitchMeanControls, PitchMeanControlsSD, PitchMeanSchizo, PitchMeanSchizoSD, PitchSDControls, PitchSDControlsSD, PitchSDSchizo, PitchSDSchizoSD)
+
+meta_dataNEW=rbind(meta_data, own_res)
+
+
+# To calculate effect size on data including own data
+Effectsize3=escalc('SMD', n1i=SampleSizeSchizo, n2i=SampleSizeContros, m1i=PitchMeanSchizo, m2i=PitchMeanControls, sd1i=PitchMeanSchizoSD, sd2i=PitchMeanControlsSD, data = meta_dataNEW)
+
+m5 = lmer(yi ~ 1 + (1|Article), weights = 1/vi, data=Effectsize3, control=lmerControl(check.nobs.vs.nlev="ignore", check.nobs.vs.nRE="ignore"))
+summary(m5)
+
+m6 = rma(yi, vi, data = Effectsize3, slab = Article)
+forest(m6)
+
+# To calculate sample size 
+Effectsize4 = subset(Effectsize3[Effectsize3$vi > 0,])
+sum(Effectsize4$SampleSizeSchizo, na.rm = TRUE) #241
+sum(Effectsize4$SampleSizeContros, na.rm = TRUE) #169
+
+# To calculate standard error of the effect sizes on data including own data
+SE3=escalc('SMD', n1i=SampleSizeSchizo, n2i=SampleSizeContros, m1i=PitchSDSchizo, m2i=PitchSDControls, sd1i=PitchSDSchizoSD, sd2i=PitchSDControlsSD, data = meta_dataNEW)
+
+m7 = lmer(yi ~ 1 + (1|Article), weights = 1/vi, data=SE3, control=lmerControl(check.nobs.vs.nlev="ignore", check.nobs.vs.nRE="ignore"))
+summary(m7)
+
+m8 = rma(yi, vi, data = SE3, slab = Article)
+forest(m8)
+
+# To calculate samplesize 
+SE4 = subset(SE3[SE3$vi > 0,])
+sum(SE4$SampleSizeSchizo, na.rm = TRUE) # 332
+sum(SE4$SampleSizeContros, na.rm = TRUE) # 230
+
+```
+
+Mean: 
+5 studies
+Schizophrenia = 241, Controls = 169
+Overall estimated diffrence (Cohen's D) was 0.17, SE = 0.13
+
+SE:
+7 studies
+Schizophrenia = 332, Controls = 230
+Overall estimated diffrence (Cohen's D) was -0.12, SE = 0.43
+
+
+3. Assess the quality of the literature: report and comment on heterogeneity of the studies (tau, I2), on publication bias (funnel plot), and on influential studies.
+
+```{r}
+# For effect size
+summary(m6)
+# tau^2 = 0.02 (SE = 0.06), I^2 = 26.15 %
+
+# For SE
+summary(m8)
+# tau^2 = 3.5 (SE = 2.1), I^2 = 98.18 %
+
+# The higher the I^2 and tau^2 value the bigger the difference between groups. 
+
+# To create funnel plots and test for publication bias
+funnel(m6, main = "Random-Effects Model",xlab = "Standardized Mean Difference") 
+
+regtest(m6)
+ranktest(m6)
+
+funnel(m8, main = "Random-Effects Model",xlab = "Standardized Mean Difference")
+
+regtest(m8) #Significant funnel plot assymitry (Publication Bias?)
+ranktest(m8) # Fails (p=1)
+
+# To test for influential studies 
+# Effect size
+inf = influence(m6)
+print(inf) 
+plot(inf) 
+
+# Martinez et al. 2015 is an influential study
+
+# SE
+inf2 = influence(m8)
+print(inf2) 
+plot(inf2) 
+
+# Cohen et al. 2014 is an influential study
+
+```
+## Tips on the process to follow:
+
+- Download the data on all published articles analyzing pitch in schizophrenia: https://www.dropbox.com/s/pmgw8wzc308so1p/Data.csv?dl=0
+- Following the procedure in the slides calculate effect size and standard error of the effect size per each study. N.B. we focus on pitch mean and pitch standard deviation.
+ . first try using lmer (to connect to what you know of mixed effects models)
+ . then use rma() (to get some juicy additional statistics)
+
+- Build a forest plot of the results (forest(model))
+ 
+- Go back to Assignment 3, add your own study to the data table, and re-run meta-analysis. Do the results change?
+
+- Now look at the output of rma() and check tau and I2
