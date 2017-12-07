@@ -1,6 +1,6 @@
 ---
 title: "Assignment 5 - Meta-analysis of pitch in schizophrenia"
-author: "Riccardo Fusaroli"
+author: "Simon Hansen"
 date: "3/7/2017"
 output: html_document
 ---
